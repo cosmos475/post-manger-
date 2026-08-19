@@ -1,0 +1,57 @@
+{
+  "name": "Telegram Caption/Post Manager Bot",
+  "description": "A Telegram bot that edits captions and manages/deletes posts across channels, with job tracking and keep-alive support.",
+  "keywords": ["telegram", "bot", "aiogram", "caption-editor", "post-manager"],
+  "repository": "https://github.com/cosmos475/post-manger-",
+  "logo": "https://raw.githubusercontent.com/cosmos475/post-manger-/main/logo.png",
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "env": {
+    "BOT_TOKEN": {
+      "description": "Get this from @BotFather on Telegram.",
+      "required": true
+    },
+    "OWNER_ID": {
+      "description": "Your personal Telegram numeric user ID (get from @userinfobot). The bot ignores every user except this one.",
+      "required": true
+    },
+    "RUN_MODE": {
+      "description": "Leave as 'webhook' for Heroku (default). Only set to 'polling' for environments without a public URL, like Google Colab.",
+      "value": "webhook",
+      "required": false
+    },
+    "WEBHOOK_URL": {
+      "description": "The public base URL Heroku assigns to this app, e.g. https://your-app-name.herokuapp.com (no trailing slash). Update this after the app is created if the auto-filled value doesn't match your final app name.",
+      "required": true
+    },
+    "WEBHOOK_PATH": {
+      "description": "Path segment Telegram will POST updates to. Keep the default unless you have a reason to change it.",
+      "value": "/webhook",
+      "required": false
+    },
+    "WEBHOOK_SECRET": {
+      "description": "Random secret string used to validate that incoming webhook requests are actually from Telegram.",
+      "generator": "secret",
+      "required": true
+    },
+    "DATABASE_URL": {
+      "description": "Postgres connection string. Create a free project at https://neon.tech and paste its connection string here.",
+      "required": true
+    },
+    "SCRATCH_CHAT_ID": {
+      "description": "A private GROUP chat ID where the bot is admin, used only as a throwaway destination for reading captions via forwardMessage. See README for setup steps.",
+      "required": false
+    }
+  },
+  "addons": []
+}

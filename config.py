@@ -22,10 +22,17 @@ class Config:
     bot_token: str
     owner_id: int
 
-    # Webhook (Render Web Service)
-    webhook_url: str  # full public URL, e.g. https://myapp.onrender.com
+    # Run mode: "webhook" (default, e.g. Render/Heroku/Koyeb/Railway with a
+    # public HTTPS URL) or "polling" (e.g. Google Colab, local dev, any
+    # environment without a stable public URL). Existing deployments that
+    # don't set RUN_MODE keep working exactly as before, since "webhook"
+    # is the default.
+    run_mode: str
+
+    # Webhook (only required when run_mode == "webhook")
+    webhook_url: str | None  # full public URL, e.g. https://myapp.onrender.com
     webhook_path: str  # path segment, e.g. /webhook/<secret>
-    webhook_secret: str  # used to validate incoming webhook requests
+    webhook_secret: str | None  # used to validate incoming webhook requests
 
     # Database (Neon Postgres)
     database_url: str
@@ -40,8 +47,8 @@ class Config:
 
     @property
     def full_webhook_url(self) -> str:
-        """Full URL Telegram should POST updates to."""
-        return f"{self.webhook_url.rstrip('/')}{self.webhook_path}"
+        """Full URL Telegram should POST updates to. Only valid in webhook mode."""
+        return f"{(self.webhook_url or '').rstrip('/')}{self.webhook_path}"
 
 
 def _require(name: str) -> str:
@@ -76,12 +83,27 @@ def load_config() -> Config:
     Raises:
         ConfigError: if any required variable is missing or malformed.
     """
+    run_mode = os.environ.get("RUN_MODE", "webhook").strip().lower() or "webhook"
+    if run_mode not in ("webhook", "polling"):
+        raise ConfigError(f"RUN_MODE must be 'webhook' or 'polling', got: {run_mode!r}")
+
+    if run_mode == "webhook":
+        webhook_url = _require("WEBHOOK_URL")
+        webhook_secret = _require("WEBHOOK_SECRET")
+    else:
+        # Polling mode never receives HTTP callbacks from Telegram, so these
+        # aren't needed. Left as None rather than fake values so nothing
+        # accidentally relies on a webhook URL that was never actually set.
+        webhook_url = os.environ.get("WEBHOOK_URL", "").strip() or None
+        webhook_secret = os.environ.get("WEBHOOK_SECRET", "").strip() or None
+
     return Config(
         bot_token=_require("BOT_TOKEN"),
         owner_id=_require_int("OWNER_ID"),
-        webhook_url=_require("WEBHOOK_URL"),
+        run_mode=run_mode,
+        webhook_url=webhook_url,
         webhook_path=os.environ.get("WEBHOOK_PATH", "/webhook").strip() or "/webhook",
-        webhook_secret=_require("WEBHOOK_SECRET"),
+        webhook_secret=webhook_secret,
         database_url=_require("DATABASE_URL"),
         port=_optional_int("PORT") or 10000,
         scratch_chat_id=_optional_int("SCRATCH_CHAT_ID"),
